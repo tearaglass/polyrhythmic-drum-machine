@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thesis Prototype</title>
+  </head>
+  <body>
+    <main>
+      <h1>STAGE 2 — THESIS PROTOTYPE</h1>
+      <section class="transport" aria-label="Transport">
+        <button id="audio-start" type="button">START AUDIO</button>
+        <button id="play" type="button" disabled>PLAY</button>
+        <button id="pause" type="button" disabled>PAUSE</button>
+        <button id="stop" type="button" disabled>STOP</button>
+        <button id="hard-reset" type="button" disabled>HARD RESET</button>
+        <button id="soft-home" type="button" disabled>SOFT HOME</button>
+        <button id="record" type="button" disabled aria-pressed="false">RECORD</button>
+        <button id="record-stop" type="button" disabled>STOP RECORD</button>
+        <label>BPM <input id="bpm" type="number" min="20" max="300" step="1" value="120" /></label>
+      </section>
+      <div class="sound-mode" role="group" aria-label="Sound mode">
+        <button id="mode-kick" type="button" aria-pressed="true">KICK SETUP</button>
+        <button id="mode-clicks" type="button" aria-pressed="false">TWO CLICKS</button>
+      </div>
+      <div class="click-performance" aria-label="Two clicks controls">
+        <label>SWING <span class="scaled-control parameter-control"><input id="click-swing" type="number" min="0" max="0.5" step="0.01" value="0" /><input class="parameter-scale" data-for="click-swing" type="range" min="0" max="0.5" step="0.01" value="0" aria-label="Swing scale" /></span></label>
+        <button id="midi-connect" type="button">MIDI</button>
+        <select id="midi-output" aria-label="MIDI output"></select>
+        <label>NOTE A <input id="midi-note-a" type="number" min="0" max="127" step="1" value="36" /></label>
+        <label>NOTE B <input id="midi-note-b" type="number" min="0" max="127" step="1" value="37" /></label>
+        <label>CHANNEL <input id="midi-channel" type="number" min="1" max="16" step="1" value="1" /></label>
+      </div>
+
+      <section class="orbit-panel" aria-label="Orbital clock visualization">
+        <canvas id="orbit" tabindex="0"></canvas>
+        <div class="selection" role="group" aria-label="Clock selection">
+          <button class="select-clock" type="button" data-select-clock="clock-a" aria-pressed="false">CLOCK A</button>
+          <button class="select-clock" type="button" data-select-clock="clock-b" aria-pressed="false">CLOCK B</button>
+          <button class="select-clock" type="button" data-select-clock="clock-c" aria-pressed="false">CLOCK C</button>
+        </div>
+      </section>
+
+      <section class="clocks" aria-label="Clocks">
+        <fieldset data-clock="clock-a">
+          <legend>CLOCK A</legend>
+          <label>RATIO <input class="ratio" type="text" value="5:4" inputmode="numeric" /></label>
+          <label>PHASE <span class="scaled-control phase-control"><input class="phase" type="number" min="0" max="0.999" step="0.01" value="0" /><input class="phase-scale" type="range" min="0" max="0.999" step="0.001" value="0" aria-label="Clock A phase scale" /></span></label>
+          <label>DRIFT <span class="scaled-control drift-control"><input class="drift" type="number" min="-0.1" max="0.1" step="0.001" value="0" /><input class="drift-scale" type="range" min="-0.1" max="0.1" step="0.001" value="0" aria-label="Clock A drift scale" /></span></label>
+          <div class="quick-ratios" role="group" aria-label="Quick clock ratios">
+            <button type="button" data-set-ratio="clock-a" data-ratio="1:1">1:1</button>
+            <button type="button" data-set-ratio="clock-a" data-ratio="2:1">2:1</button>
+            <button type="button" data-set-ratio="clock-a" data-ratio="3:2">3:2</button>
+            <button type="button" data-set-ratio="clock-a" data-ratio="4:3">4:3</button>
+            <button type="button" data-set-ratio="clock-a" data-ratio="5:4">5:4</button>
+            <button type="button" data-set-ratio="clock-a" data-ratio="5:3">5:3</button>
+            <button type="button" data-set-ratio="clock-a" data-ratio="7:4">7:4</button>
+            <button type="button" data-set-ratio="clock-a" data-ratio="7:5">7:5</button>
+          </div>
+        </fieldset>
+
+        <fieldset data-clock="clock-b">
+          <legend>CLOCK B</legend>
+          <label>RATIO <input class="ratio" type="text" value="1:1" inputmode="numeric" /></label>
+          <label>PHASE <span class="scaled-control phase-control"><input class="phase" type="number" min="0" max="0.999" step="0.01" value="0" /><input class="phase-scale" type="range" min="0" max="0.999" step="0.001" value="0" aria-label="Clock B phase scale" /></span></label>
+          <label>DRIFT <span class="scaled-control drift-control"><input class="drift" type="number" min="-0.1" max="0.1" step="0.001" value="0" /><input class="drift-scale" type="range" min="-0.1" max="0.1" step="0.001" value="0" aria-label="Clock B drift scale" /></span></label>
+          <div class="quick-ratios" role="group" aria-label="Quick clock ratios">
+            <button type="button" data-set-ratio="clock-b" data-ratio="1:1">1:1</button>
+            <button type="button" data-set-ratio="clock-b" data-ratio="2:1">2:1</button>
+            <button type="button" data-set-ratio="clock-b" data-ratio="3:2">3:2</button>
+            <button type="button" data-set-ratio="clock-b" data-ratio="4:3">4:3</button>
+            <button type="button" data-set-ratio="clock-b" data-ratio="5:4">5:4</button>
+            <button type="button" data-set-ratio="clock-b" data-ratio="5:3">5:3</button>
+            <button type="button" data-set-ratio="clock-b" data-ratio="7:4">7:4</button>
+            <button type="button" data-set-ratio="clock-b" data-ratio="7:5">7:5</button>
+          </div>
+        </fieldset>
+      </section>
+
+      <fieldset class="clock-b-control" data-inactive="false">
+        <legend>CLOCK B → KICK</legend>
+        <div class="mode-controls">
+          <button id="clock-b-follow" type="button" aria-pressed="false">FOLLOW</button>
+          <button id="clock-b-sidechain" type="button" aria-pressed="false">SIDECHAIN</button>
+        </div>
+        <div class="parameter-grid">
+          <label>PITCH <span class="scaled-control parameter-control bipolar-control"><input id="b-pitch" type="number" min="-1" max="1" step="0.05" value="0" /><input class="parameter-scale" data-for="b-pitch" type="range" min="-1" max="1" step="0.01" value="0" aria-label="Pitch modulation scale" /></span></label>
+          <label>DECAY <span class="scaled-control parameter-control bipolar-control"><input id="b-decay" type="number" min="-1" max="1" step="0.05" value="0" /><input class="parameter-scale" data-for="b-decay" type="range" min="-1" max="1" step="0.01" value="0" aria-label="Decay modulation scale" /></span></label>
+          <label>TRANSIENT <span class="scaled-control parameter-control bipolar-control"><input id="b-transient" type="number" min="-1" max="1" step="0.05" value="0" /><input class="parameter-scale" data-for="b-transient" type="range" min="-1" max="1" step="0.01" value="0" aria-label="Transient modulation scale" /></span></label>
+          <label>FM <span class="scaled-control parameter-control bipolar-control"><input id="b-fm" type="number" min="-1" max="1" step="0.05" value="0.55" /><input class="parameter-scale" data-for="b-fm" type="range" min="-1" max="1" step="0.01" value="0.55" aria-label="FM modulation scale" /></span></label>
+          <label>LEVEL <span class="scaled-control parameter-control bipolar-control"><input id="b-level" type="number" min="-1" max="1" step="0.05" value="-0.35" /><input class="parameter-scale" data-for="b-level" type="range" min="-1" max="1" step="0.01" value="-0.35" aria-label="Level modulation scale" /></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="clock-c-voice voice-parameters" aria-label="Clock C controls" data-inactive="false">
+        <legend>CLOCK C</legend>
+        <label>PITCH <span class="scaled-control parameter-control"><input id="clock-c-pitch" type="number" min="180" max="1800" step="10" value="720" /><input class="parameter-scale" data-for="clock-c-pitch" type="range" min="180" max="1800" step="10" value="720" aria-label="Clock C pitch scale" /></span></label>
+        <label>BODY <span class="scaled-control parameter-control"><input id="clock-c-body" type="number" min="60" max="320" step="5" value="145" /><input class="parameter-scale" data-for="clock-c-body" type="range" min="60" max="320" step="5" value="145" aria-label="Clock C body scale" /></span></label>
+        <label>DECAY <span class="scaled-control parameter-control"><input id="clock-c-decay" type="number" min="0.015" max="0.18" step="0.001" value="0.052" /><input class="parameter-scale" data-for="clock-c-decay" type="range" min="0.015" max="0.18" step="0.001" value="0.052" aria-label="Clock C decay scale" /></span></label>
+        <label>LEVEL <span class="scaled-control parameter-control"><input id="clock-c-level" type="number" min="0" max="0.3" step="0.005" value="0.095" /><input class="parameter-scale" data-for="clock-c-level" type="range" min="0" max="0.3" step="0.005" value="0.095" aria-label="Clock C level scale" /></span></label>
+      </fieldset>
+
+      <fieldset class="voice" aria-label="Kick controls" data-inactive="false">
+        <legend>KICK</legend>
+        <label>PITCH <span class="scaled-control parameter-control"><input id="kick-pitch" type="number" min="28" max="140" step="1" value="54" /><input class="parameter-scale" data-for="kick-pitch" type="range" min="28" max="140" step="1" value="54" aria-label="Kick pitch scale" /></span></label>
+        <label>DECAY <span class="scaled-control parameter-control"><input id="kick-decay" type="number" min="0.06" max="1.2" step="0.01" value="0.28" /><input class="parameter-scale" data-for="kick-decay" type="range" min="0.06" max="1.2" step="0.01" value="0.28" aria-label="Kick decay scale" /></span></label>
+        <label>TRANSIENT <span class="scaled-control parameter-control"><input id="kick-transient" type="number" min="0" max="1" step="0.01" value="0.28" /><input class="parameter-scale" data-for="kick-transient" type="range" min="0" max="1" step="0.01" value="0.28" aria-label="Kick transient scale" /></span></label>
+        <label>FM <span class="scaled-control parameter-control"><input id="kick-fm" type="number" min="0" max="220" step="1" value="28" /><input class="parameter-scale" data-for="kick-fm" type="range" min="0" max="220" step="1" value="28" aria-label="Kick FM scale" /></span></label>
+        <label>LEVEL <span class="scaled-control parameter-control"><input id="kick-level" type="number" min="0" max="0.9" step="0.01" value="0.56" /><input class="parameter-scale" data-for="kick-level" type="range" min="0" max="0.9" step="0.01" value="0.56" aria-label="Kick level scale" /></span></label>
+        <label>PROXIMITY <span class="scaled-control parameter-control"><input id="kick-proximity" type="number" min="0" max="1" step="0.01" value="0.5" /><input class="parameter-scale" data-for="kick-proximity" type="range" min="0" max="1" step="0.01" value="0.5" aria-label="Kick proximity scale" /></span></label>
+      </fieldset>
+
+      <output id="error" class="error" aria-live="polite"></output>
+      <pre id="diagnostics" role="region" aria-label="Diagnostics"></pre>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

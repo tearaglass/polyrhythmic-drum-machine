@@ -1,0 +1,447 @@
+# Prebuild Answers
+
+Anything not answered here is intentionally **undecided until prototyping gives us evidence**. Do not invent requirements to fill blanks.
+
+## Final Prebuild Decisions
+
+### 339. First target platform
+
+Browser application.
+
+Target macOS on Apple Silicon first, using current desktop Chrome. Mouse/trackpad + keyboard are sufficient. No hardware controller is required for the first build.
+
+The timing engine should be written independently enough that it can later be reused or reimplemented for a native/plugin version.
+
+### 340. First milestone outcome
+
+A **playable technical rhythm prototype**, not a polished product.
+
+The goal is to prove that interacting clocks, phase manipulation, and synthesized percussion are musically interesting.
+
+### 341. Required MVP features
+
+The eventual MVP should contain:
+
+* 4 synthesized drum voices
+* independent rhythm clocks
+* arbitrary rational ratio controls
+* true polyrhythm
+* polymeter
+* phase offset
+* continuous phase drift
+* HARD RESET
+* SOFT HOME
+* at least one clock-derived synthesis modulation source
+* circular/orbital clock visualization
+* basic master tempo and transport
+* live parameter changes without stopping playback
+
+Probability, accents, Euclidean generation, MIDI sync, and Ableton Link can come after the fundamental clock system works.
+
+### 342. Explicitly excluded from the first build
+
+Do **not** build these yet:
+
+* VST/AU/CLAP
+* sample loading
+* piano roll
+* large step sequencer
+* recording/export
+* MIDI export
+* Ableton Link
+* external MIDI clock
+* OSC
+* CV
+* presets/cloud accounts
+* advanced modulation matrix
+* nested clocks
+* conditional triggers
+* ratchets
+* microtiming editor
+* granular synthesis
+* physical modeling
+* elaborate effects
+* OBS mode
+* mobile UI
+* full accessibility pass
+* elaborate visual polish
+
+Architect for expansion where inexpensive, but do not implement these.
+
+### 343. Exact ratio semantics
+
+A ratio `p:q` means:
+
+**p cycles/events of the local clock occur during the same duration as q cycles/events of the reference clock.**
+
+Therefore:
+
+`local frequency = reference frequency × p/q`
+
+Example:
+
+`5:4` means five evenly spaced local cycles occur during the time occupied by four reference cycles.
+
+Ratios should preserve the user's entered numerator and denominator.
+
+Therefore `6:4` and `3:2` have the same instantaneous frequency relationship but may remain distinct representations because they imply different larger grouping/cycle structures.
+
+Do not automatically destroy the unreduced representation.
+
+### 344. Exact polyrhythm / polymeter distinction
+
+**Polyrhythm:** different numbers of evenly spaced events occupy the same temporal span.
+
+Example: 5 events against 4 events across one shared cycle.
+
+**Polymeter:** rhythms use the same underlying pulse duration but have different cycle lengths.
+
+Example: a 5-step cycle against a 7-step cycle where each step has the same duration.
+
+Internally these should eventually emerge from one clock engine rather than being completely separate systems. UI "modes" may simply configure the engine appropriately.
+
+### 345. First rhythm-generation method
+
+Start with **continuously running ratio clocks**.
+
+Do not begin with Euclidean sequencing.
+
+Each clock has:
+
+* reference clock
+* ratio
+* phase
+* running/stopped state
+
+Later pattern generators can consume these clocks.
+
+The fundamental abstraction is the clock, not the step sequencer.
+
+### 346. HARD RESET behavior
+
+HARD RESET immediately resets temporal state:
+
+* clock phases → home phase
+* cycle counters → zero
+* pattern positions → start when patterns exist
+* accumulated drift → zero
+* active home/warp operations → cancelled
+
+It does **not** reset sound design parameters, ratios, patterns, routing, or master volume.
+
+Probability/random state does not need to be considered in the first build.
+
+### 347. SOFT HOME behavior
+
+SOFT HOME returns clocks to synchronization **without jumping their phase**.
+
+Temporarily alter each selected clock's speed so its phase smoothly converges on the shared home phase, then return it to its original ratio.
+
+Trigger intervals are allowed to temporarily compress or expand during this process.
+
+No instantaneous phase teleportation.
+
+The first implementation can use one fixed home duration. Adjustable duration can come later.
+
+### 348. First four voice models / roles
+
+Use four deliberately simple synthesized percussion roles behind a common voice interface:
+
+1. **Kick**
+
+   * sine/triangle body
+   * pitch envelope
+   * decay
+
+2. **Snare**
+
+   * tonal body
+   * noise burst
+   * decay/filter
+
+3. **Hat**
+
+   * metallic/noise source
+   * high-pass filtering
+   * short decay
+
+4. **Perc**
+
+   * FM/resonant percussion
+   * intentionally broad enough for clicks, toms, bells, woodblock-ish sounds, etc.
+
+No samples in the first version.
+
+### 349. First clock-to-synthesis modulation route
+
+Use **phase difference / phase proximity between two clocks** as the first temporal modulation source.
+
+Map it to FM depth or another clearly audible timbral parameter on the percussion voice.
+
+The objective is to demonstrate:
+
+**the relationship between two rhythms can change the sound itself.**
+
+When clocks approach alignment, the timbre should audibly change.
+
+### 350. Primary editing interaction
+
+The orbital/circular visualization is both:
+
+* visualization
+* direct temporal control
+
+Users should be able to drag a clock's phase around its orbit.
+
+Ratio and other exact values can use simple controls beside the visualization.
+
+Dragging phase should **not** machine-gun all events crossed by the pointer.
+
+No conventional grid editor is required yet.
+
+### 351. Required sync method
+
+First build: **internal master clock only**.
+
+External sync is deliberately deferred.
+
+The architecture should not make MIDI clock or Ableton Link difficult to add later.
+
+### 352. Required save/export behavior
+
+Technical spike: none required.
+
+First useful MVP should eventually have:
+
+* local state persistence
+* human-readable JSON preset import/export
+
+No audio or MIDI export required initially.
+
+### 353. Target computer, browser, screen, controller
+
+* macOS
+* Apple Silicon Mac
+* desktop Chrome
+* normal laptop/desktop screen
+* mouse or trackpad
+* computer keyboard
+
+No MIDI controller dependency.
+
+Desktop pointer interaction only is acceptable initially.
+
+### 354. First-build success demonstration
+
+The build succeeds if the user can:
+
+1. Start two clocks.
+2. Hear and see a clear `5:4` relationship.
+3. Change the relationship live to something like `7:3` without stopping playback.
+4. Manually alter phase and hear the rhythms move against one another.
+5. Apply continuous drift.
+6. Hear one clock's relationship to another change a synthesis parameter.
+7. HARD RESET both clocks into alignment.
+8. Let them diverge again and use SOFT HOME to audibly and visibly bring them back together.
+
+If that feels musically compelling, continue building the instrument.
+
+---
+
+# Additional Architecture Decisions We Already Know
+
+## Clock and voice separation
+
+Internally, **rhythm generators and sound voices should be separate objects**, even if the first UI pairs them one-to-one.
+
+A clock should eventually be able to:
+
+* trigger no sound at all
+* modulate parameters
+* trigger multiple voices
+* interact with other clocks
+
+A sound voice should eventually be triggerable by several clocks.
+
+Do not bake permanent one-clock/one-sound assumptions into the engine.
+
+## Fundamental time model
+
+A clock is a continuous phase source.
+
+Represent its phase internally as a normalized value:
+
+`0.0 → 1.0`
+
+Audio time, not animation frames, is authoritative.
+
+The visualization should read the timing state used by the audio scheduler rather than maintaining an independent fake clock.
+
+## Terminology
+
+Use these meanings unless we later revise them:
+
+**Clock**
+A continuously advancing temporal phase source.
+
+**Cycle**
+One traversal from phase 0 through phase 1.
+
+**Clock pulse/event**
+An event produced by the temporal engine.
+
+**Step**
+An optional event slot belonging to a pattern layer. Steps are not fundamental units of time.
+
+**Trigger**
+An event that actually reaches a sound voice.
+
+This distinction matters later because probability may suppress a trigger without stopping the underlying clock.
+
+## Ratio changes during playback
+
+Changing ratio should:
+
+* happen immediately
+* preserve current phase
+* change future clock speed
+
+Do not jump the clock back to zero.
+
+Quantized ratio changes can be added later.
+
+## Phase
+
+Store phase offsets as fractions of a cycle rather than absolute milliseconds.
+
+Therefore phase relationships scale naturally when tempo changes.
+
+Users should eventually be able to view phase as percentage, degrees, or musical values, but this is presentation rather than engine semantics.
+
+## Phase drift
+
+The first drift implementation should simply alter relative clock speed.
+
+The clock therefore continuously moves through phase relationships and wraps indefinitely.
+
+More elaborate drift behaviors—bounded drift, destinations, random walk, bounce, jitter—come later.
+
+## Free clocks
+
+First MVP clocks remain mathematically related to a master/reference clock.
+
+The **full project should allow free-running clocks** that are not required to have rational relationships or finite recurrence periods.
+
+## Recurrence
+
+For rational clocks, the instrument should eventually be capable of calculating and displaying full recurrence time.
+
+This is not required for the technical spike but is an important long-term feature.
+
+## Polyrhythm vs modes
+
+Do not architect Polyrhythm, Polymeter, Phase Music, and Asynchronous modes as four unrelated engines.
+
+They should emerge from combinations of:
+
+* clock rate
+* cycle length
+* reference
+* phase
+* pattern length
+* synchronization behavior
+
+Named modes can later act as useful configurations/presets.
+
+## Manual triggering
+
+A sound voice should be manually triggerable without advancing its rhythm clock.
+
+## Clock-only operation
+
+A clock must eventually be allowed to exist without producing audible triggers.
+
+This is essential because clocks will later become modulation sources and control other clocks.
+
+## Probability semantics
+
+When probability is implemented, failure should suppress the **audible trigger**, not stop the underlying temporal clock from advancing.
+
+The instrument must distinguish temporal events from audible events.
+
+## Timing implementation
+
+Use Web Audio's scheduled audio timeline.
+
+Do not use `setInterval()` or animation frames as the source of musical timing.
+
+A small Web Audio scheduling look-ahead is acceptable for the first version.
+
+Sample-accurate custom DSP is not required yet.
+
+## Visualization
+
+The orbital view should communicate actual temporal state, not merely decorate the sequencer.
+
+Initially:
+
+* one orbit per clock
+* phase represented spatially around the orbit
+* pulse/event locations visible where useful
+* coincidence/alignment visibly apparent
+* faster clocks visibly complete cycles faster
+
+Exact visual language can evolve after we use it.
+
+## Sound architecture
+
+Each sound model may be different, but all voices should expose a common interface for:
+
+* trigger
+* pitch
+* decay
+* level
+* mute
+* modulation inputs
+
+More model-specific controls can sit behind that common interface.
+
+## Safety
+
+Include a master gain stage and basic output protection so pathological settings cannot produce absurd output levels.
+
+## Future scale
+
+Although the UI begins small, avoid assumptions that prevent approximately:
+
+* 8+ sound voices
+* 8–16+ clocks
+* clocks existing independently of voices
+* many-to-many routing
+* clock-to-clock modulation
+
+Do not implement those features now.
+
+---
+
+# Core Product Principle
+
+This remains primarily a **polyrhythmic drum synthesizer**.
+
+The expanded time-manipulation system exists to explore unusual things that can happen **between simultaneous rhythms**:
+
+* phase
+* stretching
+* compression
+* drift
+* synchronization
+* desynchronization
+* recurrence
+* temporal modulation
+* clock interaction
+
+Do not let the project turn into a generic modular synth, DAW, or conventional sequencer.
+
+The core thesis is:
+
+**Create extraordinary percussion by manipulating relationships between musical clocks.**
