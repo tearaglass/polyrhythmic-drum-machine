@@ -39,4 +39,42 @@ describe('master timeline', () => {
     timeline.resumeFromSuspension(100);
     expect(timeline.positionAt(100.25)).toBeCloseTo(1.75);
   });
+
+  test('STOP during a suspension stays stopped when audio returns', () => {
+    const timeline = new MasterTimeline();
+    timeline.play(0);
+    timeline.suspend(1);
+    timeline.stop(2);
+    expect(timeline.resumeFromSuspension(3)).toEqual({ playing: false, startedFromHome: false });
+    expect(timeline.state).toBe('stopped');
+  });
+
+  test('PAUSE during a suspension resumes as paused', () => {
+    const timeline = new MasterTimeline();
+    timeline.play(0);
+    timeline.suspend(1);
+    timeline.pause(2);
+    expect(timeline.resumeFromSuspension(3).playing).toBe(false);
+    expect(timeline.state).toBe('paused');
+    expect(timeline.positionAt(10)).toBeCloseTo(1);
+  });
+
+  test('PLAY during a suspension resumes playing once audio returns', () => {
+    const timeline = new MasterTimeline();
+    timeline.play(0);
+    timeline.pause(1);
+    timeline.suspend(1);
+    timeline.armPlaybackOnResume();
+    expect(timeline.resumeFromSuspension(3).playing).toBe(true);
+    expect(timeline.isPlaying).toBe(true);
+  });
+
+  test('resume is a no-op when not suspended', () => {
+    const timeline = new MasterTimeline();
+    timeline.play(0);
+    timeline.suspend(1);
+    timeline.resumeFromSuspension(2);
+    expect(timeline.resumeFromSuspension(5)).toEqual({ playing: false, startedFromHome: false });
+    expect(timeline.positionAt(2.5)).toBeCloseTo(1.5);
+  });
 });

@@ -66,6 +66,12 @@ export const CONFIG = {
     fmRatio: 2.7,
     fmDepthHz: 72,
   },
+  midi: {
+    velocity: 100,
+    noteLengthMs: 24,
+    // Positive delays MIDI, negative sends it earlier. Use to match a synth's own latency.
+    offsetMs: 0,
+  },
   visual: {
     ink: '#25251f',
     surface: '#ece9dc',

@@ -27,6 +27,10 @@ export class MasterTimeline {
     return this.state === 'playing';
   }
 
+  get isSuspended() {
+    return this.state === 'suspended';
+  }
+
   positionAt(audioTime = this.timeSource()) {
     if (!this.isPlaying) return this.position;
     return this.position + Math.max(0, audioTime - this.anchorAudioTime);
@@ -46,6 +50,11 @@ export class MasterTimeline {
   }
 
   pause(audioTime = this.timeSource()) {
+    // Pausing while the audio device is suspended means "stay paused once it returns".
+    if (this.isSuspended) {
+      this.wasPlayingBeforeSuspension = false;
+      return;
+    }
     if (!this.isPlaying) return;
     this.position = this.positionAt(audioTime);
     this.anchorAudioTime = audioTime;
@@ -57,6 +66,7 @@ export class MasterTimeline {
     this.position = 0;
     this.state = 'stopped';
     this.homeBoundaryPending = true;
+    this.wasPlayingBeforeSuspension = false;
   }
 
   markHomeBoundaryPending() {
@@ -69,9 +79,21 @@ export class MasterTimeline {
     this.state = 'suspended';
   }
 
+  // PLAY pressed during a suspension: start playing as soon as audio returns.
+  armPlaybackOnResume() {
+    if (this.isSuspended) this.wasPlayingBeforeSuspension = true;
+  }
+
+  // Returns what the caller must restart. Does nothing unless currently suspended,
+  // so it is safe to call from both the statechange event and the PLAY handler.
   resumeFromSuspension(audioTime = this.timeSource()) {
+    if (!this.isSuspended) return { playing: false, startedFromHome: false };
     this.anchorAudioTime = audioTime;
-    this.state = this.wasPlayingBeforeSuspension ? 'playing' : 'paused';
+    const playing = this.wasPlayingBeforeSuspension;
+    const startedFromHome = playing && this.homeBoundaryPending;
+    this.state = playing ? 'playing' : 'paused';
+    if (playing) this.homeBoundaryPending = false;
     this.wasPlayingBeforeSuspension = false;
+    return { playing, startedFromHome };
   }
 }

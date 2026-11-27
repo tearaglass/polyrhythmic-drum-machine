@@ -10,7 +10,6 @@ import { Scheduler } from './timing/scheduler.js';
 import { OrbitalView } from './visualization/orbital-view.js';
 
 let scheduler = null;
-let suspensionHandled = false;
 let audioEngine = null;
 
 const timeSource = () => audioEngine?.context?.currentTime ?? 0;
@@ -246,7 +245,7 @@ async function initializeAudio() {
     audioEngine.setBeaterParameters(beaterParametersFromControls());
     audioEngine.setSidechainConfig(sidechainConfigFromControls());
     if (!scheduler) createScheduler();
-    elements.audioStart.disabled = true;
+    elements.audioStart.disabled = audioEngine.state === 'running';
     setTransportEnabled(true);
     elements.record.disabled = !audioEngine.canRecord;
     setError();
@@ -255,11 +254,8 @@ async function initializeAudio() {
   }
 }
 
-function play() {
-  if (!audioEngine.context || state.timeline.isPlaying) return;
-  const audioTime = now();
-  const { startedFromHome } = state.timeline.play(audioTime);
-
+// Shared by PLAY and by recovery from an audio suspension.
+function startClocks(audioTime, startedFromHome) {
   for (const clock of state.clocks) clock.start(audioTime, state.timeline.bpm);
   scheduler.start();
 
@@ -270,7 +266,36 @@ function play() {
   state.pendingHomeBoundaryClockIds.clear();
 }
 
+function resumeAfterSuspension(audioTime) {
+  const { playing, startedFromHome } = state.timeline.resumeFromSuspension(audioTime);
+  if (playing) startClocks(audioTime, startedFromHome);
+}
+
+async function play() {
+  if (!audioEngine.context || state.timeline.isPlaying) return;
+
+  if (state.timeline.isSuspended) {
+    // Ask the device to come back; playback resumes from wherever it froze.
+    state.timeline.armPlaybackOnResume();
+    await initializeAudio();
+    if (audioEngine.state === 'running') resumeAfterSuspension(now());
+    return;
+  }
+
+  // Never start the clocks against a frozen audio clock.
+  if (audioEngine.state !== 'running') await initializeAudio();
+  if (audioEngine.state !== 'running' || state.timeline.isPlaying) return;
+
+  const audioTime = now();
+  const { startedFromHome } = state.timeline.play(audioTime);
+  startClocks(audioTime, startedFromHome);
+}
+
 function pause() {
+  if (state.timeline.isSuspended) {
+    state.timeline.pause(now());
+    return;
+  }
   if (!state.timeline.isPlaying) return;
   const audioTime = now();
   scheduler.stop();
@@ -424,18 +449,16 @@ function bindClockControls(fieldset) {
 }
 
 function handleAudioStateChange(contextState, audioTime) {
+  // START AUDIO doubles as the way to wake a suspended audio device.
+  elements.audioStart.disabled = contextState === 'running';
   if (!scheduler) return;
 
   if ((contextState === 'suspended' || contextState === 'interrupted') && state.timeline.isPlaying) {
     scheduler.stop();
     for (const clock of state.clocks) clock.pause(audioTime, state.timeline.bpm);
     state.timeline.suspend(audioTime);
-    suspensionHandled = true;
-  } else if (contextState === 'running' && suspensionHandled) {
-    state.timeline.resumeFromSuspension(audioTime);
-    for (const clock of state.clocks) clock.start(audioTime, state.timeline.bpm);
-    scheduler.start();
-    suspensionHandled = false;
+  } else if (contextState === 'running') {
+    resumeAfterSuspension(audioTime);
   }
 }
 
