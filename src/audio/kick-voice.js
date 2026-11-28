@@ -72,17 +72,17 @@ export class KickVoice {
     return 1 - age / this.sidechain.releaseSeconds;
   }
 
-  effectiveFmDepth(sidechainEnvelope = 0) {
+  effectiveFmDepth(sidechainEnvelope = 0, proximity = this.currentProximity) {
     return clamp(
       this.fmDepthHz
-        + CONFIG.kick.maxFmDepthHz * this.proximityAmount * this.currentProximity
+        + CONFIG.kick.maxFmDepthHz * this.proximityAmount * proximity
         + CONFIG.kick.maxFmDepthHz * this.sidechain.amounts.fm * sidechainEnvelope,
       0,
       CONFIG.kick.maxFmDepthHz * 2,
     );
   }
 
-  effectiveParametersAt(audioTime) {
+  effectiveParametersAt(audioTime, proximity = this.currentProximity) {
     const envelope = this.sidechainEnvelopeAt(audioTime);
     return {
       pitch: clamp(
@@ -105,7 +105,7 @@ export class KickVoice {
         CONFIG.kickRanges.level.min,
         CONFIG.kickRanges.level.max,
       ),
-      fmDepthHz: this.effectiveFmDepth(envelope),
+      fmDepthHz: this.effectiveFmDepth(envelope, proximity),
     };
   }
 
@@ -124,19 +124,17 @@ export class KickVoice {
     }
   }
 
+  // Live proximity update. Only hits that are already sounding follow it; hits
+  // scheduled for later keep the proximity computed for their own start time.
   setProximity(value, audioTime = this.audioContext.currentTime) {
     this.currentProximity = clamp(value, 0, 1);
     const time = Math.max(audioTime, this.audioContext.currentTime);
     const effectiveDepth = this.effectiveFmDepth(this.sidechainEnvelopeAt(time));
 
     for (const hit of this.activeHits) {
-      const changeTime = Math.max(time, hit.startTime);
-      hit.modulationGain.gain.cancelScheduledValues(changeTime);
-      if (hit.startTime > time) {
-        hit.modulationGain.gain.setValueAtTime(effectiveDepth, hit.startTime);
-      } else {
-        hit.modulationGain.gain.setTargetAtTime(effectiveDepth, changeTime, 0.012);
-      }
+      if (hit.startTime > time) continue;
+      hit.modulationGain.gain.cancelScheduledValues(time);
+      hit.modulationGain.gain.setTargetAtTime(effectiveDepth, time, 0.012);
     }
   }
 
@@ -144,14 +142,15 @@ export class KickVoice {
     this.activeHits = this.activeHits.filter((hit) => hit.endTime > audioTime);
   }
 
-  trigger(event) {
+  // proximity: the clock-phase proximity at this hit's start time.
+  trigger(event, proximity = this.currentProximity) {
     this.prune();
     if (this.activeHits.length >= CONFIG.kick.maxPolyphony) {
       this.activeHits.shift()?.cancel();
     }
 
     const startTime = Math.max(event.audioTime, this.audioContext.currentTime);
-    const effective = this.effectiveParametersAt(startTime);
+    const effective = this.effectiveParametersAt(startTime, clamp(proximity, 0, 1));
     const endTime = startTime + effective.decay;
     const carrier = this.audioContext.createOscillator();
     const modulator = this.audioContext.createOscillator();

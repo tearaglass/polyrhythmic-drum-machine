@@ -10,7 +10,7 @@ function modulationParameter() {
 }
 
 describe('kick proximity modulation', () => {
-  test('updates a scheduled hit at its future start without disturbing its onset', () => {
+  test('leaves a scheduled hit on the proximity computed for its own start time', () => {
     const parameter = modulationParameter();
     const voice = new KickVoice({ currentTime: 0 }, null);
     voice.activeHits = [{
@@ -21,9 +21,17 @@ describe('kick proximity modulation', () => {
 
     voice.setProximity(0.5, 0);
 
-    expect(parameter.cancelScheduledValues).toHaveBeenCalledWith(1);
-    expect(parameter.setValueAtTime).toHaveBeenCalledWith(83, 1);
+    expect(parameter.cancelScheduledValues).not.toHaveBeenCalled();
+    expect(parameter.setValueAtTime).not.toHaveBeenCalled();
     expect(parameter.setTargetAtTime).not.toHaveBeenCalled();
+  });
+
+  test('uses the hit-time proximity passed in rather than the live value', () => {
+    const voice = new KickVoice({ currentTime: 0 }, null);
+    voice.setProximity(0, 0);
+    // 28 Hz base + 220 Hz * 0.5 amount * 1.0 proximity
+    expect(voice.effectiveParametersAt(1, 1).fmDepthHz).toBe(138);
+    expect(voice.effectiveParametersAt(1).fmDepthHz).toBe(28);
   });
 
   test('smooths modulation changes on an already sounding hit', () => {

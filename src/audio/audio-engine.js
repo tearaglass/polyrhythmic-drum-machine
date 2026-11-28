@@ -57,8 +57,17 @@ export class AudioEngine {
         ? (this.clickSwing * 0.5) / frequency
         : 0;
       const swungEvent = { ...event, audioTime: event.audioTime + swingOffset };
-      this.onClickEvent?.(swungEvent);
-      return click.trigger(swungEvent);
+      const midiHandle = this.onClickEvent?.(swungEvent);
+      const soundHandle = click.trigger(swungEvent);
+      if (!midiHandle?.cancel) return soundHandle;
+      // An invalidated click must also withdraw its MIDI note.
+      return {
+        ...soundHandle,
+        cancel: () => {
+          soundHandle?.cancel?.();
+          midiHandle.cancel();
+        },
+      };
     }
 
     if (event.clockId === 'clock-c') return this.beater?.trigger(event) ?? null;
@@ -75,8 +84,9 @@ export class AudioEngine {
     let entry = existing;
 
     if (!entry) {
-      this.kick.setProximity(this.getProximity?.(event.audioTime) ?? 0, event.audioTime);
-      const soundHandle = this.kick.trigger(event);
+      // Pass the hit-time proximity straight to the hit instead of retuning
+      // every other active hit to a value from the future.
+      const soundHandle = this.kick.trigger(event, this.getProximity?.(event.audioTime) ?? 0);
       entry = {
         audioTime: event.audioTime,
         soundHandle,

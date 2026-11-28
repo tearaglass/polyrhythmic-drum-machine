@@ -27,6 +27,24 @@ describe('Stage 2 audio routing', () => {
     expect(clickB.trigger).toHaveBeenCalledOnce();
   });
 
+  test('cancelling a click also withdraws its MIDI note', () => {
+    const midiCancel = vi.fn();
+    const soundCancel = vi.fn();
+    const engine = new AudioEngine({ onClickEvent: () => ({ cancel: midiCancel }) });
+    engine.clicks.set('clock-a', {
+      trigger: () => ({ clockId: 'clock-a', startTime: 1, endTime: 1.1, cancel: soundCancel }),
+    });
+    engine.setMode('clicks');
+
+    const handle = engine.routeEvent(event('clock-a', 'a:1'));
+    expect(handle.clockId).toBe('clock-a');
+    expect(handle.startTime).toBe(1);
+    handle.cancel();
+
+    expect(soundCancel).toHaveBeenCalledOnce();
+    expect(midiCancel).toHaveBeenCalledOnce();
+  });
+
   test('delays alternating click events by the configured swing amount', () => {
     const engine = new AudioEngine({ getClockFrequency: () => 2 });
     const click = { trigger: vi.fn((scheduledEvent) => scheduledEvent) };
@@ -82,6 +100,8 @@ describe('Stage 2 audio routing', () => {
     const handleA = engine.routeEvent(event('clock-a', 'a:1', 1));
 
     expect(engine.kick.trigger).toHaveBeenCalledOnce();
+    expect(engine.kick.trigger.mock.calls[0][1]).toBe(0.75);
+    expect(engine.kick.setProximity).not.toHaveBeenCalled();
     expect(engine.scheduledHits[0].contributors.size).toBe(1);
     handleA.cancel();
     expect(soundCancel).toHaveBeenCalledOnce();
